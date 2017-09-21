@@ -10,11 +10,12 @@ import sys
 
 """Name of the directories that contains the reporitory data."""
 COMMAND_DIR = 'commands'
-REPO_DIR = '.exprepo'
+REPO_DIR = '.xpr'
 
 
 """Name of configuration files."""
 BASE_FILE = 'BASE'
+LOG_FILE = 'LOG'
 SETTINGS_FILE = 'SETTINGS'
 
 
@@ -23,9 +24,10 @@ SETTINGS_FILE = 'SETTINGS'
 CMD_CLONE = 'clone'
 CMD_CLONE_SOURCE = 'source'
 # Registry of executable scripts
-CMD_COMMAND = 'cmd'
+CMD_COMMAND = 'command'
 CMD_COMMAND_ADD = 'add'
 CMD_COMMAND_LIST = "list"
+CMD_COMMAND_UPDATE = "update"
 # Experiment configuration parameter
 CMD_CONFIG = 'config'
 CMD_CONFIG_SET = 'set'
@@ -33,9 +35,11 @@ CMD_CONFIG_SHOW = 'show'
 # Initialize the experiment repository
 CMD_INIT = 'init'
 # Command history
-CMD_HISTORY = 'history'
-# Run a script as path of an experiment
+CMD_LOG = 'log'
+# Run a script as part of an experiment
 CMD_RUN = 'run'
+# Submit a script without running it locally
+CMD_SUBMIT = 'submit'
 
 
 # ------------------------------------------------------------------------------
@@ -53,7 +57,7 @@ def get_base():
     -------
     string
     """
-    filename = os.join(REPO_DIR, BASE_FILE)
+    filename = os.path.join(REPO_DIR, BASE_FILE)
     if not os.path.isfile(filename):
         raise RuntimeError('not a valid experiment repository')
     with open(filename, 'r') as f:

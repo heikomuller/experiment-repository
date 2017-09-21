@@ -3,7 +3,7 @@
 
 import exprepo as exp
 import os
-from settings import get_setting, read_settings
+from settings import get_settings
 import subprocess
 import yaml
 
@@ -75,17 +75,32 @@ class VariableCmdElement(CmdElement):
 # API Methods
 # ------------------------------------------------------------------------------
 
-def add_command(name, spec):
+def add_command(name, spec, replace=False):
+    """Create or overwrite a script command in the experiment's command
+    regisrty.
+
+    Raises ValueError if (create) a command with the given name already exists,
+    or (update) no command with the given name exists.
+
+    Parameters
+    ----------
+    name: string
+        Command name
+    spec: string
+        Command specification as a command line string with configuration
+        parameters enclosed in << >>
     """
-    """
-    # Get file for the new command. If the file already exists, a command with
-    # the givenname has been registered before and we raise a ValueError.
+    # Get file for the new command. Raise an expeption if (1) the file already
+    # exists and the overwrite flag is set to False, or (2) the file does not
+    # exist and the replace flag is True
     filename = os.path.join(
         get_commands_dir(),
         name.lower() + COMMAND_SPEC_SUFFIX
     )
-    if os.path.isfile(filename):
+    if not replace and os.path.isfile(filename):
         raise ValueError('command \'' + name + '\' already exists')
+    elif replace and not os.path.isfile(filename):
+        raise ValueError('command \'' + name + '\' does not exist')
     # Parse the command specification
     cmd = []
     for token in spec.split():
@@ -137,8 +152,7 @@ def get_commands_dir():
 
 
 def get_log_file():
-    """Get name of the repository file that stores the command execution
-    history.
+    """Get name of the repository file that stores the command execution log.
 
     Returns
     -------
@@ -155,15 +169,11 @@ def list_commands():
     # Print commands sorted by their name
     for cmd_name in sorted(commands.keys()):
         print cmd_name
-        command_spec = []
-        for obj in commands[cmd_name]:
-            command_spec.append(obj.to_spec)
-        print '  ' + ' '.join(command_spec)
 
 
-def list_history():
-    """Print the history of experiment commands to standard output."""
-    filename = get_history_file()
+def print_log():
+    """Print the log of experiment commands to standard output."""
+    filename = get_log_file()
     # The file may not exist if no command has been executed yet
     if os.path.isfile(filename):
         with open(filename, 'r') as f:
@@ -171,32 +181,80 @@ def list_history():
                 print line.strip()
 
 
-def run_command(prg_name, name):
-    """Run the experiment script with the given name.
+def run_command(prg_name, name, args, run_local=True):
+    """Run the experiment script with the given name. Constructs the command
+    to run the script from the current configuration settings and optional
+    arguments that overwrite these settings. The script is only execute if the
+    run local flag is True.
 
-    Raises ValueError if the specified command is unknown.
+    Raises ValueError if the specified command is unknown or if the provided
+    arguments are of invalid format.
 
     Parameters
     ----------
     name: string
         Name of the script that is being run_command
+    args: list(string)
+        Arguments that override the current configurations ettings (expected
+        format is <key>=<value>)
+    run_local: bool, optional
+        Flag indicating whether to actuall execute the script or only print
+        and log the command line command for submission on a remote machine.
     """
     commands = get_commands()
     if not name in commands:
         raise ValueError('unknown command \'' + name + '\'')
+    # Get a dictionary of arguments that override the configuration settings
+    local_args = dict()
+    for arg in args:
+        pos = arg.find('=')
+        if pos < 0:
+            raise ValueError('invalid argument \'' + arg + '\'')
+        local_args[arg[:pos]] = arg[pos+1:]
     # Read the current experiment configuration settings
-    config = read_settings()
+    config = get_settings()
     # Create the list of command components
     cmd = []
     for obj in commands[name]:
         if obj.is_var:
-            cmd.append(get_setting(config, obj.value))
+            if obj.value in local_args:
+                val = local_args[obj.value]
+            else:
+                val = config.get_value(obj.value)
+            cmd.append(val)
         else:
             cmd.append(obj.value)
-    # Run the command
-    print prg_name + ' (RUN): ' + ' '.join(cmd)
-    result = subprocess.call(cmd)
-    # Add command to history if successfule (i.e., result is 0)
-    if result == 0:
-        with open(get_history_file(), 'a') as f:
-            f.write(' '.join(cmd) + '\n')
+    # Run the command if run local flag is True
+    if run_local:
+        print prg_name + ' (RUN): ' + ' '.join(cmd)
+        result = subprocess.call(cmd)
+        # Add command to log if successfule (i.e., result is 0)
+        if result == 0:
+            with open(get_log_file(), 'a') as f:
+                f.write(' '.join(cmd) + '\n')
+    else:
+        print prg_name + ' (SUBMIT): ' + ' '.join(cmd)
+        with open(get_log_file(), 'a') as f:
+            f.write('*' + ' '.join(cmd) + '\n')
+
+
+def show_command(name):
+    """Print specification for the registered command with the given name.
+
+    Raises ValueError if no command with the given name is found.
+
+    Parameters
+    ----------
+    name: string
+        Name of the command to be printed
+    """
+    commands = get_commands()
+    if name in commands:
+        print 'command: ' + name + '\n'
+        print 'parameters:'
+        i = 1
+        for obj in commands[name]:
+            print '(' + str(i) + ')  ' + obj.to_spec
+            i += 1
+    else:
+        raise ValueError('unknown command \'' + name + '\'')
