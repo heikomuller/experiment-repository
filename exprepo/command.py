@@ -124,14 +124,19 @@ def get_commands_dir():
     """Return the name of the directory where the command registry is
     maintained.
 
+    Raises RuntimeError if the directory does not exist.
+
     Returns
     -------
     string
     """
-    return os.path.join(exp.REPO_DIR, exp.COMMAND_DIR)
+    command_dir = os.path.join(exp.get_base(), exp.REPO_DIR, exp.COMMAND_DIR)
+    if not os.path.isdir(command_dir):
+        raise RuntimeError('not a valid experiment repository')
+    return command_dir
 
 
-def get_history_file():
+def get_log_file():
     """Get name of the repository file that stores the command execution
     history.
 
@@ -139,7 +144,7 @@ def get_history_file():
     -------
     string
     """
-    return os.path.join(exp.REPO_DIR, exp.HISTORY_FILE)
+    return os.path.join(exp.REPO_DIR, exp.LOG_FILE)
 
 
 def list_commands():

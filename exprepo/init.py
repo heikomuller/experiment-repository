@@ -1,20 +1,25 @@
 """Everything needed to initialize the repository."""
 
-from exprepo import COMMAND_DIR, REPO_DIR, SETTINGS_FILE
+from exprepo import BASE_FILE, COMMAND_DIR, REPO_DIR, SETTINGS_FILE
 from exprepo.command import COMMAND_SPEC_SUFFIX
 import json
 import os
 from shutil import copyfile
 
 
-def create_directories():
-    """Create the directory structure for a new experiment repository."""
+def init_repository():
+    """Initialize an experiment repository by creating the required folders
+    and files.
+    """
     os.mkdir(REPO_DIR)
     os.mkdir(os.path.join(REPO_DIR, COMMAND_DIR))
+    with open(os.path.join(REPO_DIR, BASE_FILE), 'w') as f:
+        f.write('./')
 
 
-def init_repository(source_dir=None):
-    """Initialize an experiment repository by creating the required folders.
+def clone_repository(source_dir=None):
+    """Initialize an experiment repository by creating the required folders
+    and files.
     Allows to specify an existing repository as source from which the settings
     and registered commands will be copied.
 
