@@ -60,7 +60,7 @@ def main(prg_name, args):
         # addditional parameter specifying the sub-command
         cmd_help += [
             '[',
-                exp.CMD_CONFIG_LIST,
+                exp.CMD_CONFIG_SHOW,
             '|',
                 exp.CMD_CONFIG_SET, '<parameter>', '<value>',
             ']'
@@ -69,7 +69,7 @@ def main(prg_name, args):
             # Prints the current configuration if no arguments are given. To set
             # a configuration parameter provide two additional parameters: name of
             # the parameter and new value
-            if len(args) == 2 and args[1] == exp.CMD_CONFIG_LIST:
+            if len(args) == 2 and args[1] == exp.CMD_CONFIG_SHOW:
                 print_settings()
             elif len(args) == 4 and args[1] == exp.CMD_CONFIG_SET:
                 try:

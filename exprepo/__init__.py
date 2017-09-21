@@ -24,8 +24,8 @@ CMD_COMMAND_ADD = 'add'
 CMD_COMMAND_LIST = "list"
 # Experiment configuration parameter
 CMD_CONFIG = 'config'
-CMD_CONFIG_LIST = 'list'
 CMD_CONFIG_SET = 'set'
+CMD_CONFIG_SHOW = 'show'
 # Initialize the experiment repository
 CMD_INIT = 'init'
 CMD_INIT_SOURCE = 'source'
