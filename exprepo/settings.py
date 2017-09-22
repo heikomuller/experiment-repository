@@ -58,29 +58,80 @@ class Config(object):
         else:
             raise ValueError('cannot get value of \'' + para + '\'')
 
+    def print_values(self):
+        """Print the current state of the settings dictionary. Output is in Yaml
+        format.
+        """
+        print yaml.dump(self.settings, default_flow_style=False)
+
+    def update_value(self, para, value=None):
+        """Update the value of a configuration parameter. The para argument may
+        contain a path expression. In this case all nested elements along the
+        path are created if necessary.
+
+        If the given value is None the parameter will be deleted.
+
+        Raises ValueError if an invalid parameter name is given or if an
+        existing text element is referenced as part of a path expression.
+
+        Parameters
+        ----------
+        para: string
+            Parameter path
+        value: string, optional
+            New parameter value or None (indicating delete)
+        """
+        # Remove potential starting and trailing '/'
+        if para.startswith('/'):
+            para = para[1:]
+        if para.endswith('/'):
+            para = para[:-1]
+        path = para.split('/')
+        key = path[-1].strip()
+        if key == '':
+            raise ValueError('invalid parameter name \'' + para + '\'')
+        # Find the element that is referenced by the path prefix. Create elements
+        # along the path if necessary
+        el = self.settings
+        for comp in path[:-1]:
+            if not comp in el:
+                el[comp] = dict()
+            el = el[comp]
+            if not isinstance(el, dict):
+                raise ValueError('cannot create element under text value \'' + el + '\'')
+        # Update the parameter value in the target element or delete the element if
+        # the given value is None
+        if not value is None:
+            el[key] = str(value)
+        else:
+            del el[key]
+
+    def write(self, filename):
+        """Write a configuration dictionary to the given file.
+
+        Parameters
+        ----------
+        filename: string
+            Path for the output file
+        """
+        with open(filename, 'w') as f:
+            yaml.dump(self.settings, f, default_flow_style=False)
+
+
 
 # ------------------------------------------------------------------------------
-# Helper Methods
+# API Methods
 # ------------------------------------------------------------------------------
 
-def get_settings_file(base_dir=None):
-    """Return the file name of the default settings file. Allows to specify a
-    base directory other than the current wirking directory.
-
-    Parameters
-    ----------
-    base_dir: string, optional
-        Base directory where the repository directory is expected. Use current
-        working directory as default.
+def get_global_variables():
+    """Get current state of the global variables. This will read the GLOBAL file
+    in the base directory.
 
     Returns
     -------
-    string
+    Config
     """
-    if not base_dir is None:
-        return os.path.join(base_dir, exp.REPO_DIR, exp.SETTINGS_FILE)
-    else:
-        return os.path.join(exp.REPO_DIR, exp.SETTINGS_FILE)
+    return Config(read_yaml_file(get_global_variables_file()))
 
 
 def get_settings(include_defaults=True):
@@ -100,15 +151,111 @@ def get_settings(include_defaults=True):
     """
     if include_defaults:
         filename =  get_settings_file(base_dir=exp.get_base())
-        config = read_settings_file(filename)
+        config = read_yaml_file(filename)
         # Only read local settings if this repository is a clone
         local_filename = get_settings_file()
         if os.path.abspath(filename) != os.path.abspath(local_filename):
-            return Config(read_settings_file(local_filename), defaults=config)
+            return Config(read_yaml_file(local_filename), defaults=config)
         else:
             return Config(config)
     else:
-        return Config(read_settings_file(get_settings_file()))
+        return Config(read_yaml_file(get_settings_file()))
+
+
+def print_global_variables():
+    """Print the current state of the global variables."""
+    get_global_variables().print_values()
+
+
+def print_settings():
+    """Print the current settings."""
+    get_settings().print_values()
+
+
+def update_global_variables(para, value=None):
+    """Update the value of a global variable. The para argument may
+    contain a path expression. In this case all nested elements along the path
+    are created if necessary.
+
+    If the given value is None the variable will be deleted.
+
+    Raises ValueError if an invalid parameter name is given or if an existing
+    text element is referenced as part of a path expression.
+
+    Parameters
+    ----------
+    para: string
+        Parameter path
+    value: string, optional
+        New variable value or None (indicating delete)
+    """
+    variables = get_global_variables()
+    variables.update_value(para, value=value)
+    variables.write(get_global_variables_file())
+
+
+def update_settings(para, value=None):
+    """Update the value of a configuration parameter. The para argument may
+    contain a path expression. In this case all nested elements along the path
+    are created if necessary.
+
+    If the given value is None the parameter will be deleted.
+
+    Raises ValueError if an invalid parameter name is given or if an existing
+    text element is referenced as part of a path expression.
+
+    Parameters
+    ----------
+    para: string
+        Parameter path
+    value: string, optional
+        New parameter value or None (indicating delete)
+    """
+    # Make sure to only read the local settings file
+    config = get_settings(include_defaults=False)
+    config.update_value(para, value=value)
+    config.write(get_settings_file())
+
+
+# ------------------------------------------------------------------------------
+# Helper Methods
+# ------------------------------------------------------------------------------
+
+def get_global_variables_file():
+    """Return the file name of the default settings file. Allows to specify a
+    base directory other than the current wirking directory.
+
+    Parameters
+    ----------
+    base_dir: string, optional
+        Base directory where the repository directory is expected. Use current
+        working directory as default.
+
+    Returns
+    -------
+    string
+    """
+    return os.path.join(exp.get_base(), exp.REPO_DIR, exp.GLOBAL_VARIABLES_FILE)
+
+
+def get_settings_file(base_dir=None):
+    """Return the file name of the default settings file. Allows to specify a
+    base directory other than the current wirking directory.
+
+    Parameters
+    ----------
+    base_dir: string, optional
+        Base directory where the repository directory is expected. Use current
+        working directory as default.
+
+    Returns
+    -------
+    string
+    """
+    if not base_dir is None:
+        return os.path.join(base_dir, exp.REPO_DIR, exp.SETTINGS_FILE)
+    else:
+        return os.path.join(exp.REPO_DIR, exp.SETTINGS_FILE)
 
 
 def nested_merge(d1, d2):
@@ -135,19 +282,14 @@ def nested_merge(d1, d2):
     return d1
 
 
-def print_settings():
-    """Print the current settings."""
-    print yaml.dump(get_settings().settings, default_flow_style=False)
-
-
-def read_settings_file(filename):
-    """Read settings from the given file. Returns an empty dictionary if the
-    file does not exist.
+def read_yaml_file(filename):
+    """Read settings from the given file. Expets the file content to be in Yaml
+    format. Returns an empty dictionary if the file does not exist.
 
     Parameters
     ----------
     filename: string
-        Path to repository settings file
+        Path to the input Yaml file
 
     Returns
     -------
@@ -159,62 +301,3 @@ def read_settings_file(filename):
             return yaml.load(f.read())
     else:
         return dict()
-
-
-def update_settings(para, value=None):
-    """Update the value of a configuration parameter. The para argument may
-    contain a path expression. In this case all nested elements along the path
-    are created if necessary.
-
-    If the given value is None the parameter will be deleted.
-
-    Raises ValueError if an invalid parameter name is given or if an existing
-    text element is referenced as part of a path expression.
-
-    Parameters
-    ----------
-    para: string
-        Parameter path
-    value: string, optional
-        New parameter value or None (indicating delete)
-    """
-    # Make sure to nly read the local settings file
-    config = get_settings(include_defaults=False).settings
-    # Remove potential starting and traailing '/'
-    if para.startswith('/'):
-        para = para[1:]
-    if para.endswith('/'):
-        para = para[:-1]
-    path = para.split('/')
-    key = path[-1].strip()
-    if key == '':
-        raise ValueError('invalid parameter name \'' + para + '\'')
-    # Find the element that is referenced by the path prefix. Create elements
-    # along the path if necessary
-    el = config
-    for comp in path[:-1]:
-        if not comp in el:
-            el[comp] = dict()
-        el = el[comp]
-        if not isinstance(el, dict):
-            raise ValueError('cannot create element under text value \'' + el + '\'')
-    # Update the parameter value in the target element or delete the element if
-    # the given value is None
-    if not value is None:
-        el[key] = value
-    else:
-        del el[key]
-    # Write modified configuration to disk
-    write_settings(config)
-
-
-def write_settings(config):
-    """Write a configuration dictionary to the default settings file.
-
-    Parameters
-    ----------
-    config: dict
-        Configuration settings
-    """
-    with open(get_settings_file(), 'w') as f:
-        yaml.dump(config, f, default_flow_style=False)

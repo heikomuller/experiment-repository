@@ -15,6 +15,7 @@ REPO_DIR = '.xpr'
 
 """Name of configuration files."""
 BASE_FILE = 'BASE'
+GLOBAL_VARIABLES_FILE = 'GLOBAL'
 LOG_FILE = 'LOG'
 SETTINGS_FILE = 'SETTINGS'
 
@@ -32,6 +33,10 @@ CMD_COMMAND_UPDATE = "update"
 CMD_CONFIG = 'config'
 CMD_CONFIG_SET = 'set'
 CMD_CONFIG_SHOW = 'show'
+# Global variables
+CMD_GLOBAL = 'env'
+CMD_GLOBAL_SET = 'set'
+CMD_GLOBAL_SHOW = 'show'
 # Initialize the experiment repository
 CMD_INIT = 'init'
 # Command history

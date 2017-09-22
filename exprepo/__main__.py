@@ -6,6 +6,7 @@ import exprepo as exp
 import exprepo.command as cmd
 from exprepo.init import clone_repository, init_repository
 from exprepo.settings import print_settings, update_settings
+from exprepo.settings import print_global_variables, update_global_variables
 
 
 def help(prg_name):
@@ -25,6 +26,7 @@ These are the commands that are currently implements:
   clone    Create a local copy of the experiment repository
   command  Manage scripts that are run as part of the experiment
   config   Show and set the values of a configuration parameters
+  env   Show and set the global variables
   log      Show execution history of script commands
   run      Run a registered script command
   submit   Submit a script to run on a remote machine
@@ -63,7 +65,9 @@ def main(prg_name, args):
             print ' '.join(cmd_help)
     elif cmd_name == exp.CMD_CONFIG:
         # Show and manipulate the experiment configuration. Expects at least one
-        # addditional parameter specifying the sub-command
+        # addditional parameter specifying the sub-command: Print (SHOW) or
+        # manipulate (SET). To delete a configuration parameter omit the value
+        # in a SET statement
         cmd_help += [
             '[',
                 exp.CMD_CONFIG_SHOW,
@@ -72,15 +76,36 @@ def main(prg_name, args):
             ']'
         ]
         if len(args) > 1:
-            # Prints the current configuration if no arguments are given. To set
-            # a configuration parameter provide two additional parameters: name
-            # of the parameter and new value
+            #
             if len(args) == 2 and args[1] == exp.CMD_CONFIG_SHOW:
                 print_settings()
             elif len(args) == 3 and args[1] == exp.CMD_CONFIG_SET:
                 update_settings(args[2])
             elif len(args) == 4 and args[1] == exp.CMD_CONFIG_SET:
                 update_settings(args[2], args[3])
+            else:
+                print ' '.join(cmd_help)
+        else:
+            print ' '.join(cmd_help)
+    elif cmd_name == exp.CMD_GLOBAL:
+        # Show and manipulate global variables that descript the local
+        # environment. Expects at least one addditional parameter specifying the
+        # sub-command: Print (SHOW) or manipulate (SET). To delete a variable
+        # omit the value in a SET statement
+        cmd_help += [
+            '[',
+                exp.CMD_GLOBAL_SHOW,
+            '|',
+                exp.CMD_GLOBAL_SET, '<variable>', '{<value>}',
+            ']'
+        ]
+        if len(args) > 1:
+            if len(args) == 2 and args[1] == exp.CMD_GLOBAL_SHOW:
+                print_global_variables()
+            elif len(args) == 3 and args[1] == exp.CMD_GLOBAL_SET:
+                update_global_variables(args[2])
+            elif len(args) == 4 and args[1] == exp.CMD_GLOBAL_SET:
+                update_global_variables(args[2], args[3])
             else:
                 print ' '.join(cmd_help)
         else:

@@ -3,7 +3,7 @@
 
 import exprepo as exp
 import os
-from settings import get_settings
+from settings import get_settings, get_global_variables
 import subprocess
 import yaml
 
@@ -213,19 +213,31 @@ def run_command(prg_name, name, args, run_local=True):
         if pos < 0:
             raise ValueError('invalid argument \'' + arg + '\'')
         local_args[arg[:pos]] = arg[pos+1:]
-    # Read the current experiment configuration settings
+    # Read the current experiment configuration settings and global variables
     config = get_settings()
+    variables = get_global_variables()
     # Create the list of command components
     cmd = []
     for obj in commands[name]:
+        val = None
         if obj.is_var:
             if obj.value in local_args:
                 val = local_args[obj.value]
             else:
                 val = config.get_value(obj.value)
-            cmd.append(val)
         else:
-            cmd.append(obj.value)
+            val = obj.value
+        # Replace occurrences of variable names in val
+        if '@(' in val:
+            pos = val.find('@(')
+            while pos >= 0:
+                end_pos = val.find(')', pos)
+                if end_pos < 0:
+                    raise ValueError('invalid expression \'' + val + '\'')
+                var_value = variables.get_value(val[pos+2:end_pos].strip())
+                val = val[:pos] + var_value + val[end_pos + 1:]
+                pos = val.find('@(')
+        cmd.append(val)
     # Run the command if run local flag is True
     if run_local:
         print prg_name + ' (RUN): ' + ' '.join(cmd)
