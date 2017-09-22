@@ -109,7 +109,7 @@ def main(prg_name, args):
                 cmd.add_command(args[2], args[3])
             elif len(args) == 4 and args[1] == exp.CMD_COMMAND_UPDATE:
                 # Update the specification of an existing command
-                cmd.add_command(args[2], args[3], overwrite=True)
+                cmd.add_command(args[2], args[3], replace=True)
             else:
                 print ' '.join(cmd_help)
         else:

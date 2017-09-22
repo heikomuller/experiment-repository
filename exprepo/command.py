@@ -76,11 +76,10 @@ class VariableCmdElement(CmdElement):
 # ------------------------------------------------------------------------------
 
 def add_command(name, spec, replace=False):
-    """Create or overwrite a script command in the experiment's command
-    regisrty.
+    """Create or replace a script command in the experiment's command registry.
 
     Raises ValueError if (create) a command with the given name already exists,
-    or (update) no command with the given name exists.
+    or (replace) no command with the given name exists.
 
     Parameters
     ----------
@@ -89,9 +88,12 @@ def add_command(name, spec, replace=False):
     spec: string
         Command specification as a command line string with configuration
         parameters enclosed in << >>
+    replace: bool, optional
+        Flag indicating whether a new command is added to the registry or an
+        existing one is replaced.
     """
     # Get file for the new command. Raise an expeption if (1) the file already
-    # exists and the overwrite flag is set to False, or (2) the file does not
+    # exists and the replace flag is set to False, or (2) the file does not
     # exist and the replace flag is True
     filename = os.path.join(
         get_commands_dir(),
